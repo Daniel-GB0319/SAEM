@@ -2,11 +2,16 @@
 
 const url = "https://saem-back.herokuapp.com/api/auth/signin";
 
-fetch(url)
-    .then(response => response.json())
-    .then(function (data){
-        alert("Bienvenido a SAEM");
+fetch(url, {
+    method: 'POST',
+    headers: {
+        'Contet-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        id: document.querySelector("#userName"),
+        contrasena: document.querySelector("#password")
     })
-    .catch(function (error){
-        alert("No se puede acceder");
-    })
+})
+.then((response) => {
+    alert("Bienvenido a SAEM!");
+})
