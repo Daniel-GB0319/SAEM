@@ -10,7 +10,7 @@ function login(){
         },
         body: JSON.stringify({
             id: document.querySelector("#userName"),
-            contrasena: document.querySelector("#password")
+            password: document.querySelector("#password")
         })
     })
     .then((response) => {
