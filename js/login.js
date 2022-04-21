@@ -9,8 +9,8 @@ function login(){
             'Contet-Type': 'application/json'
         },
         body: JSON.stringify({
-            id: document.querySelector("#userName"),
-            password: document.querySelector("#password")
+            id: (document.querySelector("#userName")).value,
+            password: (document.querySelector("#password")).value
         })
     })
     .then((response) => {
