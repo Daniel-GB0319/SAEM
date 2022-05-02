@@ -93,14 +93,14 @@
                     <th scope="col">OPCION</th>
                 </tr>
                 </thead>
-                <tbody>
-                <tr class="table-primary">
-                    <th scope="row">3CM15</th>
+                <tbody id="table">
+                <!-- <tr class="table-primary">
+                 <th scope="row" id="text-grupo">3CV18</th>
                     <td>INSTRUMENTACIÓN</td>
                     <td>PEREZ PEREZ CARLOS</td>
                     <td>SIN EVALUAR</td>
                     <td>
-                        <button type="button" class="btn btn-primary btn-lg btn-sm">EVALUARLO</button>
+                        <button type="button" class="btn btn-primary btn-lg btn-sm" onclick="prueba()" >EVALUARLO</button>
                     </td>
                 </tr>
                 <tr class="table-primary">
@@ -129,7 +129,7 @@
                     <td>
                         <button type="button" class="btn btn-primary btn-lg btn-sm">MODIFICAR</button>
                     </td>
-                </tr>
+                </tr> -->
                 </tbody>
             </table>
 
@@ -137,7 +137,7 @@
 
     </div>
 
-    <div class="container shadow-lg p-3 mb-5 bg-white rounded ">
+    <div class="container shadow-lg p-3 mb-5 bg-white rounded" id="table-f">
 
         <div class="row col-12">
 
@@ -149,7 +149,7 @@
  
                     <i class="fas fa-graduation-cap fa-4x" style="color: #006699"></i>
 
-                    <figcaption class="figure-caption">PEREZ PEREZ CARLOS</figcaption>
+                    <figcaption class="figure-caption"></figcaption>
 
                 </figure>
             </div>
@@ -204,7 +204,7 @@
                                                 <th scope="col">OPCIÓN 4</th>
                                             </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody id="tabla-desempeño">
                             
                                             <tr class="table-table-light">
                                                 <th scope="row">1. Los materiales brindados por el profesor frueron: </th>
@@ -398,7 +398,7 @@
                                             </div>
                                             <div class="col-sm-12 col-md-4 col-lg-4 text-center">
                                                 <div class="d-grid gap-2">
-                                                    <button class="btn btn-md btn-primary" type="submit"><ion-icon name="save"></ion-icon> GUARDAR RESPUESTAS</button>
+                                                    <button class="btn btn-md btn-primary" type="submit" form="formulario1" id="myButton"><ion-icon name="save"></ion-icon> GUARDAR RESPUESTAS</button>
                                                 </div>
                                             </div>
                     
@@ -438,9 +438,9 @@
                                                 <th scope="col">OPCIÓN 4</th>
                                             </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody id="tabla-conocimientos">
                             
-                                            <tr class="table-table-light">
+                                            <tr class="table-table-light" >
                                                 <th scope="row">1. El profesor resolvia dudas: </th>
                             
                                                 <fieldset class="form-group">
@@ -676,7 +676,7 @@
                                                 <th scope="col">OPCIÓN 4</th>
                                             </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody id="tabla-material">
                             
                                             <tr class="table-table-light">
                                                 <th scope="row">1. El profesor daba clases por TEAMS: </th>
@@ -870,7 +870,7 @@
                                             </div>
                                             <div class="col-sm-12 col-md-4 col-lg-4 text-center">
                                                 <div class="d-grid gap-2">
-                                                    <button class="btn btn-md btn-primary" type="submit" form="formulario3" id="myButton"><ion-icon name="save"></ion-icon> GUARDAR RESPUESTAS</button>
+                                                    <button class="btn btn-md btn-primary" type="submit" form="formulario3" id="myButton"><ion-icon name="save"></ion-icon> GUARDAR RESPUESTAS</button>                        
                                                 </div>
                                             </div>
                     
@@ -924,7 +924,6 @@
                                     </div>
                                 </div>
         
-        
                             </div>
 
                             <br>
@@ -950,8 +949,8 @@
     </div>
 
     <div class="col-sm-12 col-md-6 col-lg-4 offset-md-3 offset-lg-4">
-        <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-lg btn-primary">FINALIZAR EVALUACIÓN</button>
+        <div class="d-grid gap-2" id="finalButton">
+            <button type="submit" class="btn btn-lg btn-primary" id="final-button">FINALIZAR EVALUACIÓN</button>
         </div>
     </div>
     <footer class="bg-light text-center text-lg-start">
@@ -1099,7 +1098,21 @@
 <script> 
     
     document.getElementById("text-username").textContent = 'Bienvenido ' + localStorage.getItem('nombre'); 
-   
-</script>
 
+    //funciones para los botones
+    function actualizarProfesor(nombreProf){
+        //alert("El nombre del profesor es: "+nombreProf);
+        const contenedor = document.getElementById('iconsFormulario');
+        let html = '';
+        html += `
+        <i class="fas fa-graduation-cap fa-4x" style="color: #006699"></i>
+        <figcaption class="figure-caption">${nombreProf}</figcaption>
+        `
+        contenedor.innerHTML = html;
+    }
+    function refrescar(){
+        location.reload();
+    } 
+</script>
+<script type="module"  src="js/evaluarProfesor.js"></script>
 </html>

@@ -36,5 +36,7 @@ export const kardex = async () =>
   }
 }
 
+export const getMaterias = () => getDocs(collection(db,'Materias'));
+
 
 
