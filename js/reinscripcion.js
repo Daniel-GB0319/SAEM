@@ -1,587 +1,288 @@
-import {db} from './firebase.js';
+import {db, datosPeriodo} from './firebase.js';
 //import {jsPDF} from 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+import { getFirestore, collection, addDoc,query, where, getDocs, getDoc, doc, updateDoc } from "http://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"
 
-import { getFirestore, collection, addDoc,query, where, getDocs, getDoc, doc } from "http://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"
+let creditos = 18;
+let materiasInscritas = [];
 
-
-const boleta =localStorage.getItem('boleta')
-//este solo es una prueba para ver los creditos
-let creditos = 18
-console.log(boleta)
-
-const buscar_formulario = document.getElementById('form_buscar');
-console.log(buscar_formulario)
-
-buscar_formulario.addEventListener('submit', (e)=>{
+document.querySelector("#form_buscar").addEventListener('submit',async(e) => {
     e.preventDefault();
-    const turno = buscar_formulario['turno'].value
-    const carrera = buscar_formulario['carrera'].value
-    const grupo = buscar_formulario['grupo'].value
-    const materia =  buscar_formulario['materia'].value
-    console.log(turno,carrera,grupo,materia)
-    buscar_materias(turno, carrera, grupo, materia)
-    
-})
-
-export const buscar_materias = async (turno, carrera, grupo, materia) => {
-    
-    if (carrera == 'ISC'){
-        carrera = 'Ingenieria en Sistemas Computacionales'
-    }else if (carrera == 'LCD'){
-        carrera = 'Licenciatura en Ciencia de Datos'
-    }else{
-        carrera = 'Ingenieria en Inteligencia Artificial'
-    }
-
-    
-    const q = query(collection(db, "Materias"), where("nombre", "==", materia));
-    const q1 = query(collection(db, "Materias"), where("grupo", "==", grupo));
-    const q2 = query(collection(db, "Materias"), where("turno", "==", turno), where("carrera", "==", carrera)); 
-    //const q3 = query(collection(db, "Materias"), where("turno", "==", turno), where("carrera", "==", carrera));
-    const q3 = query(collection(db, "Materias"), where("nombre", "==", materia), where("grupo", "==", grupo), where("carrera", "==", carrera));
-
-    let arreglo = []
-    let arreglo1 = []
-    let arreglo2 = []
-    //let arreglo3 = []
-
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((doc) => {
-    // doc.data() is never undefined for query doc snapshots
-    arreglo.push(doc.id)
-
-    });
-
-    const querySnapshot1 = await getDocs(q1);
-    querySnapshot1.forEach((doc) => {
-    // doc.data() is never undefined for query doc snapshots
-    arreglo1.push(doc.id)
-
-    });
-    //filtrado por turno y cual es la carrera
-    const querySnapshot2 = await getDocs(q2);
-    querySnapshot2.forEach((doc) => {
-    // doc.data() is never undefined for query doc snapshots
-    arreglo2.push(doc.id)
-
-    });
-
-    let elemento = document.getElementById('tabla-busqueda');
-    console.log(elemento)
-    let contenido = ''
-    contenido += `
-            <table class="table table-primary table-striped" id="tabla-busqueda">
-            <tbody>
-            <tr class="table-active">
-                <th scope="row">Grupo</th>
-                <th scope="row">Materia</th>
-                <th scope="row">Profesor</th>
-                <th scope="row">Lunes</th>
-                <th scope="row">Martes</th>
-                <th scope="row">Mi&eacute;rcoles</th>
-                <th scope="row">Jueves</th>
-                <th scope="row" colspan="2">Viernes</th>
-            </tr>`
-
-    // entra dependiendo de que datos estan vacios en el formulario mandado
-    if(grupo ==='' && materia){
-        let intersection = arreglo.filter(v => arreglo2.includes(v))
-        //console.log(intersection)
-
-        const consulta_materia = query(collection(db, "Materias"), where("__name__", "in", intersection));
-        const querySnapshot3 = await getDocs(consulta_materia);
-        querySnapshot3.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        console.log(doc.id, '=>', doc.data())
-        contenido+=` <tr>
-            <td>${doc.data().grupo}</td>
-            <td>${doc.data().nombre}</td>
-            <td>${doc.data().titular}</td>`
-            if(doc.data().hLunes){
-                contenido += `<td>${doc.data().hLunes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMartes){
-                contenido += `<td>${doc.data().hMartes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMiercoles){
-                contenido += `<td>${doc.data().hMiercoles}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hJueves){
-                contenido += `<td>${doc.data().hJueves}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hViernes){
-                contenido += `<td>${doc.data().hViernes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-           
-           contenido+=` <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex btn-id" data-id="${doc.id}">Inscribir</button></td>
-            </tr>`
-        });
-
-        contenido+=`</table>`
-
-        elemento.innerHTML = contenido
-        const btn_id = elemento.querySelectorAll('.btn-id')
-
-        getInscribir(btn_id)
-
-
-    } else if (materia === '' && grupo){
-        let intersection1 = arreglo1.filter(v => arreglo2.includes(v))
-        console.log(intersection1)
-        
-
-        const consulta_grupo = query(collection(db, "Materias"), where("__name__", "in", intersection1));
-        const querySnapshot4 = await getDocs(consulta_grupo);
-        querySnapshot4.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        console.log(doc.id, '=>', doc.data())
-    
-        contenido+=` <tr>
-            <td>${doc.data().grupo}</td>
-            <td>${doc.data().nombre}</td>
-            <td>${doc.data().titular}</td>`
-            if(doc.data().hLunes){
-                contenido += `<td>${doc.data().hLunes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMartes){
-                contenido += `<td>${doc.data().hMartes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMiercoles){
-                contenido += `<td>${doc.data().hMiercoles}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hJueves){
-                contenido += `<td>${doc.data().hJueves}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hViernes){
-                contenido += `<td>${doc.data().hViernes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-           
-           contenido+=` <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex btn-id" data-id="${doc.id}">Inscribir</button></td>
-            </tr>`
-        });
-
-        contenido+=`</table>`
-
-        elemento.innerHTML = contenido
-        const btn_id = elemento.querySelectorAll('.btn-id')
-
-        getInscribir(btn_id)
-    } else if(materia === '' && grupo === ''){
-        const querySnapshot2 = await getDocs(q2);
-        querySnapshot2.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        console.log(doc.id ,'=>', doc.data())
-        contenido+=` <tr>
-            <td>${doc.data().grupo}</td>
-            <td>${doc.data().nombre}</td>
-            <td>${doc.data().titular}</td>`
-            if(doc.data().hLunes){
-                contenido += `<td>${doc.data().hLunes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMartes){
-                contenido += `<td>${doc.data().hMartes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMiercoles){
-                contenido += `<td>${doc.data().hMiercoles}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hJueves){
-                contenido += `<td>${doc.data().hJueves}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hViernes){
-                contenido += `<td>${doc.data().hViernes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-           
-           contenido+=` <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex btn-id" data-id="${doc.id}">Inscribir</button></td>
-            </tr>`
-        });
-
-        contenido+=`</table>`
-
-        elemento.innerHTML = contenido
-        const btn_id = elemento.querySelectorAll('.btn-id')
-
-        getInscribir(btn_id)
-    }else {
-        const querySnapshot3 = await getDocs(q3);
-        querySnapshot3.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        console.log(doc.id,'=>',doc.data())
-        contenido+=` <tr>
-            <td>${doc.data().grupo}</td>
-            <td>${doc.data().nombre}</td>
-            <td>${doc.data().titular}</td>`
-            if(doc.data().hLunes){
-                contenido += `<td>${doc.data().hLunes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMartes){
-                contenido += `<td>${doc.data().hMartes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMiercoles){
-                contenido += `<td>${doc.data().hMiercoles}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hJueves){
-                contenido += `<td>${doc.data().hJueves}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hViernes){
-                contenido += `<td>${doc.data().hViernes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-           
-           contenido+=` <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex btn-id" data-id="${doc.id}">Inscribir</button></td>
-            </tr>`
-        });
-
-        contenido+=`</table>`
-
-        elemento.innerHTML = contenido
-        const btn_id = elemento.querySelectorAll('.btn-id')
-
-        getInscribir(btn_id)
-    }
-
-
-
-    //console.log(arreglo,arreglo1,arreglo2)
-
-   
-
-    // ya que lo tenemos filtrado podemos proceder a buscar
-
-
-
-    
-}
-
-export const getMaterias = () => getDocs(collection(db,'Materias'))
-//cuando se carga la pagina muestra todas las materias que tenemos en la base de datos
-window.addEventListener("DOMContentLoaded", async ()=>{
-    
-    let elemento = document.getElementById('tabla-busqueda');
-    console.log(elemento)
-    let contenido = ''
-    contenido += `
-            <table class="table table-primary table-striped" id="tabla-busqueda">
-            <tbody>
-            <tr class="table-active">
-                <th scope="row">Grupo</th>
-                <th scope="row">Materia</th>
-                <th scope="row">Profesor</th>
-                <th scope="row">Lunes</th>
-                <th scope="row">Martes</th>
-                <th scope="row">Mi&eacute;rcoles</th>
-                <th scope="row">Jueves</th>
-                <th scope="row" colspan="2">Viernes</th>
-            </tr>`
-    const querySnapshot99 = await getMaterias()
-    querySnapshot99.forEach(doc =>{
-        contenido+=` <tr>
-            <td>${doc.data().grupo}</td>
-            <td>${doc.data().nombre}</td>
-            <td>${doc.data().titular}</td>`
-            if(doc.data().hLunes){
-                contenido += `<td>${doc.data().hLunes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMartes){
-                contenido += `<td>${doc.data().hMartes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMiercoles){
-                contenido += `<td>${doc.data().hMiercoles}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hJueves){
-                contenido += `<td>${doc.data().hJueves}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hViernes){
-                contenido += `<td>${doc.data().hViernes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-           
-           contenido+=` <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex btn-id" data-id="${doc.id}">Inscribir</button></td>
-            </tr>`
-        });
-
-        contenido+=`</table>`
-
-        elemento.innerHTML = contenido
-
-        const btn_id = elemento.querySelectorAll('.btn-id')
-
-        getInscribir(btn_id)
-
-
-})
-
-//-------------horario actual funcion para inscribir las materias que requiera
-//sera un dic que contenda el id de materia y creditos y con esto podemos ir restando o sumando
-let diccionario_creditos = new Object();
-let cuenta = 0
-let cuenta_centinela=0
-//cuando de click obtendremos el campo para ponerlo en la tabla de abajo
-
-let elemento = document.getElementById('inscripcion-tabla');
-console.log(elemento)
-   
-let contenido1 = `<tbody>
-    <tr class="table-active">
-        <th scope="row">Grupo</th>
-        <th scope="row">Materia</th>
-        <th scope="row">Profesor</th>
-        <th scope="row">Lunes</th>
-        <th scope="row">Martes</th>
-        <th scope="row">Mi&eacute;rcoles</th>
-        <th scope="row">Jueves</th>
-        <th scope="row" colspan="2">Viernes</th>
-    </tr>`
-
-
-
-const getInscribir = (btn_id) =>{
-    
-    btn_id.forEach( btn =>{ 
-        btn.addEventListener('click', async ({target:{dataset}}) =>{
+    // const turno = document.querySelector("#form_buscar")['turno'].value.toUpperCase();
+    // const carrera = document.querySelector("#form_buscar")['carrera'].value;
+    const grupo = document.querySelector("#form_buscar")['grupo'].value;
+    const materia =  document.querySelector("#form_buscar")['materia'].value;
+
+    try {
+        if(materia) { // Se busca por materia y grupo
+            console.log('hola')
+            // Busco el grupo para traer las materias, el horario y el id del profe
+            const gpoRef = doc(db,"Grupo",grupo.toUpperCase());
+            const gpoSnap = await getDoc(gpoRef);
             
-            
-        //console.log(dataset.id)
-        const consulta_uno = query(collection(db, "Materias"), where("__name__", "==", dataset.id));
-        const querySnapshot999 = await getDocs(consulta_uno);
-        let contenido = `` 
-        querySnapshot999.forEach((doc) => {
-            // doc.data() is never undefined for query doc snapshots
-        cuenta_centinela += doc.data().creditos
-        if(cuenta_centinela > creditos){
-                alert('no tienes suficientes creditos: ' + cuenta + " te faltan " +(creditos-cuenta)+" para inscribir esta materia")
-                cuenta_centinela -= doc.data().creditos
-        }else{
-            
-            console.log(doc.id, '=>', doc.data())
-            contenido+=`<tr id="${doc.id}">
-            <td>${doc.data().grupo}</td>
-            <td>${doc.data().nombre}</td>
-            <td>${doc.data().titular}</td>`
-            if(doc.data().hLunes){
-                contenido += `<td>${doc.data().hLunes}</td>`
-            }else{
-                contenido += `<td></td>`
+            // [idMateria||turno, {horario, profesor} || VESPERTINO/MATUTINO ]
+            const materias = Object.entries(gpoSnap.data());
+
+            for (let mt of materias) {
+                if (mt[0]!=='turno') {
+                    // busco la materia por el id para obtener el nombre
+                    const mtRef = doc(db,"Materia",mt[0]);
+                    const mtSnap = await getDoc(mtRef);
+                    const nombreMt = mtSnap.data().nombre;
+                    if ( materia === nombreMt) { // Solo añado la materia que se esta buscando
+                        const {profesor, ...horario} = mt[1];
+                        // busco el profesor por su id para obtener su nombre
+                        const profRef = doc(db,'Usuario',profesor.id);
+                        const profSnap = await getDoc(profRef);
+                        const nombreProf = profSnap.data();
+
+                        addMateria(grupo.toUpperCase(), nombreMt,mt[0],nombreProf,horario);
+                    }
+                }
             }
 
-            if(doc.data().hMartes){
-                contenido += `<td>${doc.data().hMartes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hMiercoles){
-                contenido += `<td>${doc.data().hMiercoles}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hJueves){
-                contenido += `<td>${doc.data().hJueves}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-
-            if(doc.data().hViernes){
-                contenido += `<td>${doc.data().hViernes}</td>`
-            }else{
-                contenido += `<td></td>`
-            }
-            
-            contenido += `<td><button class="btn btn-primary btn-sm d-flex btn-id" data-id="${doc.id}">borrar</button></td>`
-            contenido+=`</tr>`
-            
-            diccionario_creditos[doc.id] = doc.data().creditos;
-            console.log(diccionario_creditos)
-            
-
-           
-            //verificamos en el contenido1 si el patron de la fila ya se encuentra si es asi lo excluye 
-            if(contenido1.search(contenido) != -1){
-                alert("Materia ya inscrita")
-            }else{
-                cuenta += doc.data().creditos
-                alert('Creditos disponibles: '+(creditos-cuenta))
-                contenido1+=contenido
-                console.log(cuenta)
+        } else { // Se busca solo por grupo
+            // Busco el grupo para traer las materias, el horario y el id del profe
+            const gpoRef = doc(db,"Grupo",grupo.toUpperCase());
+            const gpoSnap = await getDoc(gpoRef);
+    
+            // [idMateria||turno, {horario, profesor} || VESPERTINO/MATUTINO ]
+            const materias = Object.entries(gpoSnap.data());
+    
+            for (let mt of materias) {
+                if (mt[0]!=='turno') {
+                    // busco la materia por el id para obtener el nombre
+                    const mtRef = doc(db,"Materia",mt[0]);
+                    const mtSnap = await getDoc(mtRef);
+                    const nombreMt = mtSnap.data().nombre;
+    
+                    const {profesor, ...horario} = mt[1];
+                    // busco el profesor por su id para obtener su nombre
+                    const profRef = doc(db,'Usuario',profesor.id);
+                    const profSnap = await getDoc(profRef);
+                    const nombreProf = profSnap.data();
+                    addMateria(grupo.toUpperCase(), nombreMt,mt[0],nombreProf,horario);
+    
+    
+                }
             }
         }
+
+
+    } catch (error) {
+        console.log(error);
+    }
+});
+
+const addMateria = (grupo, materia, materiaId, profesor, horario, mtRef) => {
+
+    // Añado la materia al dom
+    const tabla = document.querySelector('#tabla-busqueda>tbody');
+    const fila = document.createElement('tr');
+
+    let td = document.createElement('td');
+    td.innerText = grupo;
+    fila.appendChild(td);
+    
+    td = document.createElement('td');
+    td.innerText = materia;
+    fila.appendChild(td);
+    
+    td = document.createElement('td');
+    td.innerText = profesor.nombre+' '+profesor.aPaterno+' '+profesor.aMaterno;
+    fila.appendChild(td);
+    // Lunes
+    td = document.createElement('td');
+    td.innerText = horario?.lunes || '';
+    fila.appendChild(td);
+    // martes
+    td = document.createElement('td');
+    td.innerText = horario?.martes || '';
+    fila.appendChild(td);
+    // miercoles
+    td = document.createElement('td');
+    td.innerText = horario?.miercoles || '';
+    fila.appendChild(td);
+    // jueves
+    td = document.createElement('td');
+    td.innerText = horario?.jueves || '';
+    fila.appendChild(td);
+    // viernes
+    td = document.createElement('td');
+    td.innerText = horario?.viernes || '';
+    fila.appendChild(td);
+    // boton
+    td = document.createElement('td');
+    td.classList.add('d-flex','justify-content-center');
+    let btn = document.createElement('button');
+    btn.classList.add('btn','btn-primary','btn-sm','d-flex');
+    btn.innerText="Inscribir";
+    btn.setAttribute('data-id',materiaId)
+    // añado un event listener para cuando quiera inscribir esa materia
+    const datos = { grupo, materia, materiaId, profesor, horario}
+    btn.addEventListener('click',(e)=>inscribirMateria(e,datos));
+    td.appendChild(btn);
+    fila.appendChild(td);
+
+    tabla.appendChild(fila);
+
+}
+
+const inscribirMateria = async(e, datos) => {
+    try {
+        // obtengo el id de la materia a inscribir
+        const idMt = e.target.getAttribute('data-id');
+
+        // Comprobar si la materia no esta inscrita
+        if (!document.querySelector(`#${idMt}`)) { // No esta inscrita
+            // Obtengo los creditos de la materia
+            const mtRef = doc(db,"Materia",idMt);
+            const mtSnap = await getDoc(mtRef);
+            const { creditos:cr} = mtSnap.data();
+    
+            // cmpruebo si  tengo creditos para inscribir la materia
+            if (creditos - cr >= 0 ) { // Puedo inscribir la materia
+                // Reducimos los creditos de la materia
+                creditos -= cr;
+                // Añadimos la materia al array de materias inscritas
+                materiasInscritas.push({grupo: datos.grupo, materia: datos.materiaId});
+                // Añadimos la materia en la tabla de horario actual (DOM)
+                addMateriaInscrita(datos.grupo, datos.materia, datos.materiaId, datos.profesor, datos.horario);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Materia inscrita',
+                    text: 'Créditos disponibles: '${creditos},
+                    confirmButtonText: 'Aceptar'
+                })
+            } else { // No puedo inscribir la materia
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Materia no inscrita',
+                    text: 'Créditos insuficientes',
+                    confirmButtonText: 'Aceptar'
+                })
+            }
+        } else { // esta inscrita
+            Swal.fire({
+                icon: 'error',
+                title: 'Inscripción de materia inválida',
+                text: 'La materia ya está inscrita',
+                confirmButtonText: 'Aceptar'
+            })
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const addMateriaInscrita = (grupo, materia, materiaId, profesor, horario) => {
+    const tabla = document.querySelector('#inscripcion-tabla>tbody');
+    const fila = document.createElement('tr');
+    fila.setAttribute('id',materiaId);
+
+    let td = document.createElement('td');
+    td.innerText = grupo;
+    fila.appendChild(td);
+    
+    td = document.createElement('td');
+    td.innerText = materia;
+    fila.appendChild(td);
+    
+    td = document.createElement('td');
+    td.innerText = profesor.nombre+' '+profesor.aPaterno+' '+profesor.aMaterno;
+    fila.appendChild(td);
+    // Lunes
+    td = document.createElement('td');
+    td.innerText = horario?.lunes || '';
+    fila.appendChild(td);
+    // martes
+    td = document.createElement('td');
+    td.innerText = horario?.martes || '';
+    fila.appendChild(td);
+    // miercoles
+    td = document.createElement('td');
+    td.innerText = horario?.miercoles || '';
+    fila.appendChild(td);
+    // jueves
+    td = document.createElement('td');
+    td.innerText = horario?.jueves || '';
+    fila.appendChild(td);
+    // viernes
+    td = document.createElement('td');
+    td.innerText = horario?.viernes || '';
+    fila.appendChild(td);
+    // boton
+    td = document.createElement('td');
+    td.classList.add('d-flex','justify-content-center');
+    let btn = document.createElement('button');
+    btn.classList.add('btn','btn-danger','btn-sm','d-flex');
+    btn.innerText="Borrar";
+    btn.setAttribute('data-id',materiaId)
+    // añado un event listener para cuando quiera eliminar esa materia
+    btn.addEventListener('click',()=>eliminarMateria(materiaId, grupo));
+    td.appendChild(btn);
+    fila.appendChild(td);
+
+    tabla.appendChild(fila);
+}
+// Funcion que elimina la materia de la tabla de las materias inscritas
+const eliminarMateria = async (materiaId, grupo) => {
+    try {
+        const tabla = document.querySelector('#inscripcion-tabla>tbody');
+        const fila = document.querySelector(`#${materiaId}`);
+        if ( fila ) {
+            // Obtengo los creditos de la materia
+            const mtRef = doc(db,"Materia",materiaId);
+            const mtSnap = await getDoc(mtRef);
+            const { creditos:cr} = mtSnap.data();
+            // Agrgeo los creditos de la materia borrada
+            creditos += cr;
+            // Elimino la fila de la materia del DOM
+            tabla.removeChild(fila);
+            // Elimino la materia del array de materias inscritas
+            materiasInscritas = materiasInscritas.filter((elemento)=>elemento.grupo !== grupo || elemento.materia !== materiaId );
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const btnFinalizarInscripcion = document.querySelector('#finalizar');
+btnFinalizarInscripcion.addEventListener('click',()=>finalizarInscripcion());
+
+const finalizarInscripcion = async () => {
+    // console.log(t)
+    try {
+        const {periodo} = await datosPeriodo();
+        // Referencia a la coleccion Inscripcion
+        const inscripcionRef = collection(db,"Inscripcion");
+        // Referencia al alumno
+        const alumnoRef = doc(db,"Usuario",localStorage.getItem('boleta'));
+        // Query donde me traera la inscricion de un alumno por su boleta y el periodo
+        const q = query(inscripcionRef, where("periodo","==",periodo), where("alumno","==",alumnoRef));
+        // Ejecucion de la query
+        const querySnapshot = await getDocs(q);
+
+        querySnapshot.forEach(async(documento)=>{
+            const materias = materiasInscritas.map(({grupo, materia})=>{
+                // referenica de la materia
+                const mtRef = doc(db,"Materia",materia);
+                // referencia del grupo
+                const gpoRef = doc(db,"Grupo",grupo);
+                return  {
+                    materia: mtRef,
+                    grupo: gpoRef
+                }
             });
-
-            
-            
-            contenido.replace(/ /g, "")
-            elemento.innerHTML = contenido1
-            console.log(elemento)
-            const btn_id = elemento.querySelectorAll('.btn-id')
-            //console.log(btn_id)
-            
-            borrar_seleccion(btn_id)
-    })    
-})
-    
-    
-}
-
-
-//debemos borrar el contenido que selecciono el usuario en caso de ser necesario
-//contenido es una variable golbal donde pintamos la tabla para el horario que desea el usuuario, cuando le damos eliminar lo reemplazamos
-//en el contenido
-const borrar_seleccion = (btn_id) =>{
-    btn_id.forEach( btn =>{ 
-        btn.addEventListener('click', ({target:{dataset}}) =>{
-            var opcion = confirm("¿Estas seguro de elimiar la materia?");
-            if (opcion == true) {
-                
-                //le regresa la cuenta para que cuando se borre subo el puntaje de creditos
-                let regresar_cuenta = diccionario_creditos[dataset.id]
-                cuenta-=regresar_cuenta
-                cuenta_centinela-=regresar_cuenta
-                delete diccionario_creditos[dataset.id]
-
-                console.log("Borramos una materia regresa creditos",diccionario_creditos)
-                
-                const fila_id = document.getElementById(dataset.id)
-                fila_id.remove();
-                let texto_borrar =`<tr id="${dataset.id}">`
-                texto_borrar += fila_id.innerHTML;
-                texto_borrar+=`</tr>`
-                texto_borrar.replace(/ /g, "")
-                console.log(texto_borrar)
-                
-                if (contenido1.search(texto_borrar) != -1) {
-                    console.log('lo contiene');
-                    contenido1 = contenido1.replace(texto_borrar, "")
-                    console.log(contenido1)
-                  }else{
-                    console.log("que no esta dice")
-                  }
-                
-                            
-            }
-
+            await updateDoc(doc(db,'Inscripcion',documento.id),{materias});
+            Swal.fire({
+                icon: 'success',
+                title: 'Reinscripción realizada',
+                text: 'Has concluido el proceso de reinscripción',
+                confirmButtonText: 'Aceptar'
+            })
+            window.location.href = './index.html';
         })
-    })
-
-    
-
-}
-
-let finalizar_boton = document.getElementById("finalizar"); // Encuentra el elemento "p" en el sitio
-finalizar_boton.onclick = finalizar_horario;
-
-async function finalizar_horario () {
-    
-    const confirmar = confirm('¿Estas Seguro de continuar?')
-    if(confirmar == true){
-        const inscribir = document.getElementById("inscripcion-tabla")
-        let id_materia_inscribir =  []
-        let nodo = inscribir.querySelectorAll("tr")
-        if(nodo.length > 1){
-        for(let i = 0;nodo.length > i; i++){
-            id_materia_inscribir.push(nodo[i].id)
-            console.log(nodo[i].id)
-        }
-        //borra el primer elemento ya que es el header del table de horario actual
-        id_materia_inscribir.splice(0,1)
-        console.log(id_materia_inscribir)
-        // En esta parte llamamos a la base de datos para poder inscribir materias por el id y nombre del alumno
-        const registros_materias_actual = query(collection(db, "Materias"), where("__name__", "in", id_materia_inscribir));
-        const querySnapshot_actual = await getDocs(registros_materias_actual);
-        querySnapshot_actual.forEach((doc) => {
-            console.log(doc.id,"=>",doc.data())
-        });
-        //solo falta poner en una colección las materias que tenemos del semestre actual
-        
-        await saveInscripcion(boleta, id_materia_inscribir)
-       
-
-
-        // 
-            alert('Proceso de inscripción finalizado')
-            //NOTA: Linea de abajo nos regresa al index como de que si funciono todo
-            window.location.href='./index.html'
-        }else{
-            alert("No tiene materias seleccionadas")
-        }
-        
+    } catch (error) {
+        console.log(error);
     }
 }
-
-//guarda en la base de datos la boleta y el id de las materias cuando el visualizar horario solo debe
-//consultar collecction inscripcionActual con el cual obtiene que te tenga boleta y arreglo de horario
-// y con ese arreglo de los id de las materias puede traerlo con un query donde where id_materia "in" "arreglo_materia"
-const saveInscripcion = async (boleta, materias_id)=>{
-    await addDoc(collection(db,'inscripcionActual'), {boleta, materias_id})
-}
-
-
-
-

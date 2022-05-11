@@ -1,85 +1,70 @@
-import {db} from './firebase.js';
+import {db, datosPeriodo} from './firebase.js';
 import { getFirestore, collection, addDoc,query, where, getDocs, getDoc, doc } from "http://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"
 
 window.addEventListener('DOMContentLoaded', async () => {
-    const querySnapshot2 = await getInscripcion()
-
-    let Inscripcion
-
-    const miBoleta = localStorage.getItem('boleta');
-
-    querySnapshot2.forEach(doc => {
-        const datos = doc.data()
-        console.log(datos)
-
-        if(datos.boleta == miBoleta) {
-            Inscripcion = datos;
+    try {
+        const {periodo, inscripcion} = await datosPeriodo();
+        // Si es periodo de inscripción, entonces no hay materias ni calificaciones que mostrar
+        if (!inscripcion) {
+            // Referencia a la coleccion Inscripcion
+            const inscripcionRef = collection(db,"Inscripcion");
+            // Referencia al alumno
+            const alumnoRef = doc(db,"Usuario",localStorage.getItem('boleta'));
+            // Query donde me traera la inscricion de un alumno por su boleta y el periodo
+            const q = query(inscripcionRef, where("periodo","==",periodo), where("alumno","==",alumnoRef));
+            // Ejecucion de la query
+            const querySnapshot = await getDocs(q);
+            let materiasInscritas = [];
+            // Obtengo solo las materias de la inscripcion actual y los guardo en un array "materiasInscritas"
+            querySnapshot.forEach((doc)=>{
+                materiasInscritas = doc.data().materias;
+            })
+            // Recorro el arreglo de materiasInscritas el cual tiene las materias inscritas con sus calificaciones, grupo y id de la materia
+            for ( let mt of materiasInscritas ) {
+                const {grupo, primerParcial, segundoParcial, tercerParcial, final, materia} = mt;
+                // busco la materia por el id para obtener el nombre
+                const mtRef = doc(db, "Materia", materia.id);
+                const mtSnap = await getDoc(mtRef);
+                const nombreMt = mtSnap.data().nombre;
+                // añado la materia a la tabla
+                addMateria(grupo.id, primerParcial, segundoParcial, tercerParcial, final, nombreMt);
+    
+            }
+        } else {
+            document.querySelector("#titulo").innerText="No hay información para mostrar";
+            document.querySelector("#contenedorCalificaciones").classList.add('d-none');
         }
-    })
 
-    for(var i = 0; i < Inscripcion.materias.length; i++) {
-        var materia = await getMateria(Inscripcion.materias[i])
-        var calif = [Inscripcion.parcial1[i],Inscripcion.parcial2[i],Inscripcion.parcial3[i],Inscripcion.ordinario[i],Inscripcion.extraordinario[i]]
-
-        addMateria(materia,calif)
+    } catch (error) {
+        console.log(error)
     }
 })
 
-// Genera una fila con las calificaciones de la materia
-function addMateria(materia,calif) {
+function addMateria(grupo, primerParcial, segundoParcial, tercerParcial, finalParcial, nombreMateria, extraordinario = 100) {
     let tabla = document.getElementById('tablaCalificaciones');
     let cuerpoTabla = document.createElement('tbody');
-    const datos = materia.data()
-
-        let fila = document.createElement('tr');
-
-        // Ingresa el Grupo donde pertenece la materia
-        let td = document.createElement('td');
-        td.innerText = datos.grupo;
-        fila.appendChild(td);
-
-        // Ingresa el nombre de la materia
-        td = document.createElement('td');
-        td.innerText = datos.nombre;
-        fila.appendChild(td);
-
-        // Ingresa la calificacion del primer parcial
-        td = document.createElement('td');
-        td.innerText = calif[0];
-        fila.appendChild(td);
-
-        // Ingresa la calificacion del segundo parcial
-        td = document.createElement('td');
-        td.innerText = calif[1];
-        fila.appendChild(td);
-
-        // Ingresa la calificacion del tercer parcial
-        td = document.createElement('td');
-        td.innerText = calif[2];
-        fila.appendChild(td);
-
-        // Ingresa la calificacion total del periodo ordinario
-        td = document.createElement('td');
-        td.innerText = calif[3];
-        fila.appendChild(td);
-
-        // Ingresa la calificacion del extraordinario
-        td = document.createElement('td');
-        td.innerText = calif[4];
-        fila.appendChild(td);
-    
-        cuerpoTabla.appendChild(fila);
-
-        tabla.appendChild(cuerpoTabla);
+    let fila = document.createElement('tr');
+    let td = document.createElement('td');
+    td.innerText = grupo;
+    fila.appendChild(td);
+    td = document.createElement('td');
+    td.innerText = nombreMateria;
+    fila.appendChild(td);
+    td = document.createElement('td');
+    td.innerText = primerParcial ? primerParcial : '';
+    fila.appendChild(td);
+    td = document.createElement('td');
+    td.innerText = segundoParcial ? segundoParcial : '';
+    fila.appendChild(td);
+    td = document.createElement('td');
+    td.innerText = tercerParcial ? tercerParcial : '';
+    fila.appendChild(td);
+    td = document.createElement('td');
+    td.innerText = finalParcial ? finalParcial : '';
+    fila.appendChild(td);
+    td = document.createElement('td');
+    td.innerText = extraordinario > 10 ? 'NP': extraordinario;
+    fila.appendChild(td);
+    cuerpoTabla.appendChild(fila);
+    tabla.appendChild(cuerpoTabla);
 }
-// Obtener datos de la tabla Materias
-export const getMateria = (id) => getDoc(doc(db,"Materias", id))
-
-// Obtener datos de la tabla Profesor
-export const getProfesor = (id) => getDoc(doc(db,"Profesores", id))
-
-// Obtener datos de la tabla Alumnos
-export const getAlumno = (id) => getDoc(doc(db,"Alumnos", id))
-
-// Obtener datos de la tabla Inscripcion
-export const getInscripcion = () => getDocs(collection(db,'Inscripciones'))

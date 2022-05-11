@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.8/css/solid.css">
     <script src="https://use.fontawesome.com/releases/v5.0.7/js/all.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    
     <title>SAEM</title>
 
     <link rel="icon" type="image/png" href="./Imagenes/escudoESCOMicon.png">
@@ -76,14 +75,14 @@
         <h1>Evaluar Profesores</h1>
     </div>
     <br>
-    
+
     <div class="container shadow-lg p-3 mb-5 bg-white rounded">
 
         <br>
 
         <div class="table-responsive">
 
-            <table class="table table-hover text-center">
+            <table id="tableP" class="table table-hover text-center">
                 <thead>
                 <tr>
                     <th scope="col">GRUPO</th>
@@ -146,7 +145,7 @@
                 <br>
 
                 <figure class="figure" id = "iconsFormulario">
- 
+
                     <i class="fas fa-graduation-cap fa-4x" style="color: #006699"></i>
 
                     <figcaption class="figure-caption"></figcaption>
@@ -191,9 +190,9 @@
                             <div class="row col-12" id="contenedorFormulario">
 
                                 <h1>DESEMPEÑO</h1>
-                                <form id="formulario1"> 
+                                <form id="formulario1">
                                     <fieldset>
-                            
+
                                         <table class="table table-hover text-center">
                                             <thead>
                                             <tr>
@@ -205,10 +204,10 @@
                                             </tr>
                                             </thead>
                                             <tbody id="tabla-desempeño">
-                            
+
                                             <tr class="table-table-light">
                                                 <th scope="row">1. Los materiales brindados por el profesor frueron: </th>
-                            
+
                                                 <fieldset class="form-group">
                                                     <td>
                                                         <div class="form-check">
@@ -218,7 +217,7 @@
                                                                 </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -227,7 +226,7 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -236,7 +235,7 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -245,13 +244,13 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                 </fieldset>
                                             </tr>
-                            
+
                                             <tr class="table-table-light">
                                                 <th scope="row">2. Los materiales brindados por el profesor frueron: </th>
-                            
+
                                                 <fieldset class="form-group">
                                                     <td>
                                                         <div class="form-check">
@@ -261,7 +260,7 @@
                                                                 </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -270,7 +269,7 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -279,7 +278,7 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -288,13 +287,13 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                 </fieldset>
                                             </tr>
-                            
+
                                             <tr class="table-table-light">
                                                 <th scope="row">3. Los materiales brindados por el profesor frueron: </th>
-                            
+
                                                 <fieldset class="form-group">
                                                     <td>
                                                         <div class="form-check">
@@ -304,7 +303,7 @@
                                                                 </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -313,7 +312,7 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -322,7 +321,7 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -331,14 +330,14 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                 </fieldset>
                                             </tr>
-                            
-                            
+
+
                                             <tr class="table-table-light">
                                                 <th scope="row">4. Los materiales brindados por el profesor frueron: </th>
-                            
+
                                                 <fieldset class="form-group">
                                                     <td>
                                                         <div class="form-check">
@@ -348,7 +347,7 @@
                                                                 </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -357,7 +356,7 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                            
+
                                                     <td>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
@@ -1100,7 +1099,7 @@
     document.getElementById("text-username").textContent = 'Bienvenido ' + localStorage.getItem('nombre'); 
 
     //funciones para los botones
-    function actualizarProfesor(nombreProf){
+    function actualizarProfesor(nombreProf, idmateria, materia){
         //alert("El nombre del profesor es: "+nombreProf);
         const contenedor = document.getElementById('iconsFormulario');
         let html = '';
@@ -1109,10 +1108,14 @@
         <figcaption class="figure-caption">${nombreProf}</figcaption>
         `
         contenedor.innerHTML = html;
+        idmateria = materia;
+        console.log(idmateria);
+        return idmateria;
     }
     function refrescar(){
         location.reload();
     } 
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="module"  src="js/evaluarProfesor.js"></script>
 </html>

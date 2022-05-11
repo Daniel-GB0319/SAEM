@@ -62,7 +62,7 @@
     </div>
 </nav>
 
-<div class="container mt-5">
+<div class="container d-flex flex-column mt-5">
     <div class="row d-flex justify-content-between">
         <div class="col">
             <h1>Inscribir ETS</h1>
@@ -75,53 +75,50 @@
         </div>
     </div>
     <br>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th class="text-center" colspan="7">Materias Reprobadas :(</th>
-            </tr>
-        </thead>
+    <table class="table table-striped" id="materiasReprobadas">
         <tbody>
-        <tr class="table-active">
-            <th scope="row">Materia</th>
-            <th scope="row">No. de Materia</th>
-            <th scope="row">Plan de Estudios</th>
-            <th scope="row">Carrera</th>
-            <th scope="row" colspan="2">Cr&eacute;ditos</th>
-        </tr>
-        <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex">Inscribir</button></td>
-        </tr>
+            <tr class="table-active">
+                <th scope="row">Materia</th>
+                <th scope="row">No. de Materia</th>
+                <th scope="row">Fecha</th>
+                <th scope="row">Turno</th>
+                <th scope="row" colspan="2">Sal&oacute;n</th>
+            </tr>
+            <!-- <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex">Inscribir</button></td>
+            </tr> -->
+        </tbody>
     </table>
 
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <th class="text-center" colspan="7">ETS Inscritos</th>
-        </tr>
-        </thead>
+    <table class="table table-striped"id="materiasReprobadasInscritas">
         <tbody>
-        <tr class="table-active">
-            <th scope="row">Materia</th>
-            <th scope="row">No. de Materia</th>
-            <th scope="row">Hora</th>
-            <th scope="row">Turno</th>
-            <th scope="row" colspan="2">Sal&oacute;n</th>
-        </tr>
-        <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex">Dar de baja ETS</button></td>
-        </tr>
+            <tr>
+                <th class="text-center" colspan="7">ETS Inscritos</th>
+            </tr>
+            <tr class="table-active">
+                <th scope="row">Materia</th>
+                <th scope="row">No. de Materia</th>
+                <th scope="row">Hora</th>
+                <th scope="row">Turno</th>
+                <th scope="row" colspan="2">Sal&oacute;n</th>
+            </tr>
+            <!-- <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="d-flex justify-content-center"><button class="btn btn-primary btn-sm d-flex">Eliminar</button></td>
+            </tr> -->
+        </tbody>
     </table>
+    <button class="btn btn-primary flex-row-end mx-auto" id="finalizar">Finalizar</button>
+
 </div>
 
 
@@ -270,5 +267,6 @@
     document.getElementById("numBoleta").textContent =  'Boleta: ' + localStorage.getItem('boleta');
    
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="./js/inscribirEts.js" type="module"></script>
 </html>

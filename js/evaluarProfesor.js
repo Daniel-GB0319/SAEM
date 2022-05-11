@@ -1,54 +1,167 @@
-import{getMaterias} from './firebase.js';
+import{datosPeriodo} from './firebase.js';
 import { getFirestore, collection, addDoc,query, where, getDocs, getDoc, doc, setDoc, updateDoc} from "http://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"
+export const getData = () => getDocs(collection(db,'Evaluaciones',localStorage.getItem("boleta"),'Desempeño'));//Funcion para cargar las materias de la db
+export const isFinished = (arrayTermino) =>{setDoc(doc(db,'Evaluaciones',localStorage.getItem("boleta"),'Materias Evaluadas','Completo'),{arrayTermino});}//Funcion para tener las materias evaluadas en la db
+import Swal from 'sweetalert2/dist/sweetalert2.js'
+import 'sweetalert2/src/sweetalert2.scss'
+
 const db = getFirestore();
 let cont = 0;
-//Funciones para hacer consultas a la db 
-//Obtenemos las claves de las materias
-const clavesProfesores = await getMaterias();
-let clavesP = new Array();
-clavesProfesores.forEach(doc =>{
-    clavesP.push(doc.data().titular);
-});
-//Obtenemos el nombre del profesor asociado a la materia
-let nombresP = new Array()
-for(cont = 0; cont < clavesP.length;cont++){
-    const profRef = collection(db,"Profesores");
-    const nombreP =  query(profRef, where("ID", "==", clavesP[cont]));
-    const referencia = await getDocs(nombreP);
-    referencia.forEach((doc)=>{
-        nombresP.push(doc.data().aPaterno + " " + doc.data().aMaterno + " " + doc.data().nombre);
+let materiasEvaluadas = 0;
+let idmateria = "";
+let ordenID = new Array();//almacenamos los id de las materias//ELIMINAR ORDEN ID
+var arrayId = new Array();
+var arrayTermino = new Array();//Almacenamos las materias evaluadas completamente
+var finish = 0;//Variable que nos indica si todas las materias estan evaluadas
+///////////////////////////NUEVO CODIGO PARA OBTENER LAS MATERIAS INSCRITAS////////////////////
+window.addEventListener('DOMContentLoaded', async () => {
+
+    try {
+        const {periodo, inscripcion} = await datosPeriodo();
+        // Si es periodo de inscripción, entonces no hay materias ni calificaciones que mostrar
+        if (!inscripcion) {
+            // Referencia a la coleccion Inscripcion
+            const inscripcionRef = collection(db,"Inscripcion");
+            // Referencia al alumno
+            const alumnoRef = doc(db,"Usuario",localStorage.getItem('boleta'));
+            // Query donde me traera la inscricion de un alumno por su boleta y el periodo
+            const q = query(inscripcionRef, where("periodo","==",periodo), where("alumno","==",alumnoRef));
+            // Ejecucion de la query
+            const querySnapshot = await getDocs(q);
+            let materiasInscritas = [];
+            // Obtengo solo las materias de la inscripcion actual y los guardo en un array "materiasInscritas"
+            querySnapshot.forEach((doc)=>{
+                materiasInscritas = doc.data().materias;
+            })
+            // Recorro el arreglo de materiasInscritas el cual tiene las materias inscritas con sus calificaciones, grupo y id de la materia
+            for ( let mt of materiasInscritas ) {
+                const {materia, grupo} = mt;
+                // busco la materia por el id para obtener el nombre
+                const mtRef = doc(db, "Materia", materia.id);
+                const mtSnap = await getDoc(mtRef);
+                const nombreMt = mtSnap.data().nombre;
+
+                // busco el grupo por el id para obtener la referencia al profesor
+                const gpoRef = doc(db,"Grupo",grupo.id);
+                const gpoSnap = await getDoc(gpoRef);
+                const {profesor} =gpoSnap.data()[materia.id];
+
+                // busco el profesor por su id para obtener su nombre
+                const profRef = doc(db,'Usuario',profesor.id);
+                const profSnap = await getDoc(profRef);
+                const nombreProf = profSnap.data();
+                // Añado los datos a la tabla
+                addMateria(grupo.id, nombreMt, nombreProf);
+            }
+        } else {
+            const texto = document.createElement('h1');
+            texto.innerText = 'Disfruta tus vacaciones';
+            texto.classList.add('text-center')
+            document.querySelector("#contenedor").appendChild(texto);//CORREGIR
+            document.querySelector("#tableP").classList.add('d-none');
+        }
+
+    } catch (error) {
+        console.log(error)
+    }
+
+    //funcion para enlistar los datos que tenemos en la db de las preguntas y obtener el id generado de cada documento, se carga al inicio de la pagina
+    var materiaActual;
+    //Para la seccion de desempeño, obtenemos los id de los documentos
+    const datos = await getData();
+    datos.forEach(doc =>{
+        console.log("Los documentos en desempeño son:",doc.data());
+        materiaActual = doc.data().opciones.Materia;
+        if(doc.data().Evaluado == true){
+            //Quitamos boton y marcamos como evaluado, tambien actualizamos el estado
+            const nodo = document.getElementById(materiaActual);
+            const padre = nodo.parentNode;
+            padre.removeChild(nodo);
+            const nodoN = document.getElementById(`${doc.data().opciones.Materia}1`);
+            console.log("EL ESTADO A MODIFICAR ES",nodoN);
+            let html = "";
+            let html1 = "";
+            html = `
+            <p id="${idmateria}">NINGUNA</p>
+            `
+            padre.innerHTML = html;
+            html1 += `
+            <p>EVALUADO</p>
+            `
+            nodoN.innerHTML = html1;
+            }
+        arrayId.push(doc.id);
     });
+    console.log(arrayId);
+    //Funcion para eliminar el formulario, cargamos el numero de materias evaluadas
+    const docRef = doc(db,'Evaluaciones',localStorage.getItem('boleta'),'Materias Evaluadas','Completo');
+    const docSnap = await getDoc(docRef);
+    if(docSnap.exists()){
+        console.log("Hay materias evaluadas",docSnap.data());
+        for(var i = 0; i < docSnap.data().arrayTermino.length; i++){
+            arrayTermino.push(docSnap.data().arrayTermino[i]);
+        }
+        console.log("Y son:",arrayTermino);
+        if(arrayTermino.length == materiasEvaluadas){
+            console.log("Entramos al if");
+            for(var i = 0; i<arrayTermino.length; i++){
+                if(arrayTermino[i] == false){
+                    finish = 1;
+                }
+            }
+            if(finish == 0){
+                const quit = document.getElementById('table-f')
+                const quitButton = document.getElementById('final-button');
+                console.log("TENEMOS TODAS LAS MATERIAS EVALUADAS",quit);
+    
+                quit.parentNode.removeChild(quit);
+                quitButton.parentNode.removeChild(quitButton);
+            }
+        }
+        }else{
+            console.log("Aun no hay materias evaluadas");
+        }
+
+    });
+
+function addMateria(grupo, materia, profesor) {
+    let tabla = document.getElementById('tableP');
+    let cuerpoTabla = document.createElement('tbody');
+
+    let fila = document.createElement('tr');
+
+    let td = document.createElement('td');
+    td.innerText = grupo;
+    fila.appendChild(td);
+
+    td = document.createElement('td');
+    td.innerText = materia;
+    fila.appendChild(td);
+    td = document.createElement('td');
+    td.innerText = profesor.nombre+' '+profesor.aPaterno+' '+profesor.aMaterno;
+    fila.appendChild(td);
+    //Estado de evaluacion
+    td = document.createElement('td');
+    td.innerHTML = 'SIN EVALUAR';
+    fila.appendChild(td);
+    td.setAttribute('id',`${materia}1`);
+    //Boton para evaluar
+    td = document.createElement('td');
+    let btn = document.createElement('button');
+    btn.classList.add('btn','btn-primary','btn-lg','btn-sm');
+    btn.innerText = 'EVALUAR PROFESOR';
+    btn.setAttribute('type','button');
+    //td.innerHTML ='<button type="button" class="btn btn-primary btn-lg btn-sm">EVALUARLO</button>';
+    btn.setAttribute('id',materia);
+    btn.addEventListener('click',() => idmateria = actualizarProfesor(profesor.nombre+' '+profesor.aPaterno+' '+profesor.aMaterno,idmateria,materia));
+    td.appendChild(btn);
+    fila.appendChild(td);
+
+    cuerpoTabla.appendChild(fila);
+    tabla.appendChild(cuerpoTabla);
+    materiasEvaluadas +=1;
 }
-cont = 0;
-//alert(nombresP);
-
-//Obtenemos las materias del alumno
-let arrayMaterias = new Array();
-const contenedor = document.getElementById('table');
-const querySnapshot = await getMaterias();
-let html = '';//Creamos el arreglo vacio para ordenarlo en pantalla
-querySnapshot.forEach(doc =>{//Solo mostramos los documentos
-    console.log(doc.data());//doc.data transforma el objeto a datos
-    const materia = doc.data();
-    arrayMaterias.push(materia.nombre);
-
-    html += `
-    <tr class = "table-primary">
-    <th scope="row">${materia.grupo}</th>
-    <td>${materia.nombre}</td>
-    <td>${nombresP[cont]}</td>
-    <td id="${materia.nombre}1">SIN EVALUAR</td>
-    <td>
-        <button type="button" class="btn btn-primary btn-lg btn-sm" id="${materia.nombre}" onclick ="actualizarProfesor('${nombresP[cont]}');" >EVALUARLO</button>
-    </td>
-    </tr>
-    `
-    //document.getElementById(nombresP[cont]).onclick = actualizarProfesor(nombresP[cont]);
-    //actualizarProfesor(nombresP[cont]);
-    cont+=1;
-});
-contenedor.innerHTML = html;
-cont = 0;
+//////////////////////////////////////////////////////////
 //Hacemos las cosultas para obtener las preguntas por seccion en la db
 //Seccion Conocimientos
 let arrayPreguntas = new Array();
@@ -238,7 +351,7 @@ for(cont = 0; cont < arrayPreguntas3.length; cont++){
 table3.innerHTML = content;
 //Codigo para obtener el id de materia que se esta evaluando
 var i = 0;
-var idmateria = "";
+//var idmateria = "";
 var test = document.getElementsByClassName('btn btn-primary btn-lg btn-sm');//Obtenemos los elementos cuya clase sean los mismos para recuperar el id de materias
 console.log(test.length);
 for(i = 0; i< test.length; i++){
@@ -253,19 +366,19 @@ console.log(test);
 const saveOptions = (opciones) => {
      //setDoc(doc(db,"Evaluaciones",localStorage.getItem("boleta"),'Desempeño','b3JStNugQJQCsmxSozgV'), opciones);
      console.log(opciones);
-     addDoc(collection(db,'Evaluaciones',localStorage.getItem("boleta"),'Desempeño'), {opciones});
+     setDoc(doc(db,'Evaluaciones',localStorage.getItem("boleta"),'Desempeño',idmateria), {opciones});
 }
 //funcion para guardar las opciones de la seccion conocimientos
 const saveOptions2 = (opciones) => {
-    addDoc(collection(db,'Evaluaciones',localStorage.getItem("boleta"),'Conocimientos'),{opciones});
+    setDoc(doc(db,'Evaluaciones',localStorage.getItem("boleta"),'Conocimientos',idmateria),{opciones});
 } 
 //funcion para guardar las opciones de la seccion material didactico
 const saveOptions3 = (opciones) =>{
-    addDoc(collection(db,'Evaluaciones',localStorage.getItem("boleta"),'Material'),{opciones});
+    setDoc(doc(db,'Evaluaciones',localStorage.getItem("boleta"),'Material',idmateria),{opciones});
 }
 //funcion para guardar los comentarios de un profesor
 const saveComents =(coments) =>{
-    addDoc(collection(db,'Evaluaciones',localStorage.getItem("boleta"),'Comentarios'),{coments});
+    setDoc(doc(db,'Evaluaciones',localStorage.getItem("boleta"),'Comentarios',idmateria),{coments});
 }
 //Para el de desempeño
 let opcionesSelect = new Array();
@@ -273,7 +386,6 @@ let noPregunta = new Array();
 let bandera1 =false;
 const formulario1 = document.getElementById('formulario1');
 formulario1.addEventListener('submit', (e) =>{
-    //alert("ID MATERIA VALE" + idmateria);
     bandera1 = false;
     opcionesSelect = [];//limpiamos el arreglo
     noPregunta = [];//limpiamos el arreglo
@@ -283,27 +395,22 @@ formulario1.addEventListener('submit', (e) =>{
     cont = 0;
     for(var i = 0; i<arrayPreguntas1.length * 4; i++){
         if(respuestas[i].checked == true){
-            //alert("Hay una respuesta seleccionada " + respuestas[i].value);
             opcionesSelect.push(respuestas[i].value);
             noPregunta.push(cont+1);
             cont+=1;
             if(i % 4 == 0){//La respuesta es primera opcion
-                i += 4;
+                i += 3;
             }else if (i % 4 == 1){//La respuesta es segunda opcion
-                i += 3; 
+                i += 2; 
             }else if(i % 4 == 2){//La respuesta es tercera opcion
-                i += 2;
-            }else{//La respuesta es cuarta opcion
                 i += 1;
             }
         }else if(i % 4 == 3){//No se contesto la pregunta
-            //alert("Cambiamos bandera a true");
             bandera1 = true;//si la bandera termina en true entonces no se respondieron todas las preguntas
             cont+=1;
         }
     }
     e.preventDefault();
-    //alert("Las preguntas son:" + noPregunta);
     const opcion = opcionesSelect;
     //Creamos el objeto con las opciones
     const docData = {
@@ -316,12 +423,23 @@ formulario1.addEventListener('submit', (e) =>{
     }
     console.log(opcion);
     console.log(localStorage.getItem('boleta'));
+    console.log("Idmateria vale",idmateria);
     if(idmateria == ""){
-        alert("Por favor seleccione un profesor a evaluar");
+        Swal.fire({
+            icon: 'error',
+            title: 'Profesor no seleccionado',
+            text: 'Por favor, seleccione un profesor a evaluar',
+            confirmButtonText: 'Aceptar'
+        })
     }else{
         saveOptions(docData);
         console.log('submitted form1');//Probamos el boton del formulario
-        alert("Se han guardado las respuestas en la seccion Desempeño de la materia " + idmateria);
+        Swal.fire({
+            icon: 'success',
+            title: 'Sección terminada',
+            text: 'Se han guardado las respuestas',
+            confirmButtonText: 'Aceptar'
+        })
     }
 });
 //SECCION CONOCIMIENTOS
@@ -341,12 +459,10 @@ formulario2.addEventListener('submit', (e) =>{
             noPregunta.push(cont+1);
             cont +=1;
             if( i % 4 == 0){
-                i += 4;
-            }else if(i % 4 == 1){
                 i += 3;
-            }else if(i % 4 == 2){
+            }else if(i % 4 == 1){
                 i += 2;
-            }else if(i % 4 == 3){
+            }else if(i % 4 == 2){
                 i += 1;
             }
         }else if(i % 4 == 3){
@@ -365,11 +481,21 @@ formulario2.addEventListener('submit', (e) =>{
         Evaluado: false
     }
     if(idmateria == ""){
-        alert("Por favor seleccione un profesor a evaluar");
+        Swal.fire({
+            icon: 'error',
+            title: 'Profesor no seleccionado',
+            text: 'Por favor, seleccione un profesor a evaluar',
+            confirmButtonText: 'Aceptar'
+        })
     }else{
         saveOptions2(docData2);
-        console.log('submitted form2')
-        alert("Se han guardado las respuestas en la seccion Conocimientos de la materia " + idmateria);
+        console.log('submitted form2');
+        Swal.fire({
+            icon: 'success',
+            title: 'Sección terminada',
+            text: 'Se han guardado las respuestas',
+            confirmButtonText: 'Aceptar'
+        })
     }
 });
 //SECCION MATERIAL DIDACTICO
@@ -389,12 +515,10 @@ formulario3.addEventListener('submit',(e) =>{
             noPregunta.push(cont+1);
             cont +=1;
             if( i % 4 == 0){
-                i += 4;
-            }else if(i % 4 == 1){
                 i += 3;
-            }else if(i % 4 == 2){
+            }else if(i % 4 == 1){
                 i += 2;
-            }else if(i % 4 == 3){
+            }else if(i % 4 == 2){
                 i += 1;
             }
         }else if(i % 4 == 3){
@@ -411,11 +535,21 @@ formulario3.addEventListener('submit',(e) =>{
         Evaluado: false
     }
     if(idmateria == ""){
-        alert("Por favor seleccione un profesor a evaluar");
+        Swal.fire({
+            icon: 'error',
+            title: 'Profesor no seleccionado',
+            text: 'Por favor, seleccione un profesor a evaluar',
+            confirmButtonText: 'Aceptar'
+        })
     }else{
         saveOptions3(docData3);
         console.log('submitted form3')
-        alert("Se han guardado las respuestas en la seccion Material Didactico de la materia " + idmateria);
+        Swal.fire({
+            icon: 'success',
+            title: 'Sección terminada',
+            text: 'Se han guardado las respuestas',
+            confirmButtonText: 'Aceptar'
+        })
     }
 
 });
@@ -433,15 +567,25 @@ formulario4.addEventListener('submit',(e) =>{
         Comentarios: comentarios
     }
     if(idmateria == ""){
-        alert("Por favor seleccione un profesor a evaluar");
+        Swal.fire({
+            icon: 'error',
+            title: 'Profesor no seleccionado',
+            text: 'Por favor, seleccione un profesor a evaluar',
+            confirmButtonText: 'Aceptar'
+        })
     }else{
         saveComents(docData4);
         console.log('submitted form4')
-        alert("Se han guardado los comentarios");
+        Swal.fire({
+            icon: 'success',
+            title: 'Sección terminada',
+            text: 'Se han guardado las respuestas',
+            confirmButtonText: 'Aceptar'
+        })
     }
 });
-//BOTON FINALIZAR EVALUACION
-//Funcion para validad los campos de desempeño
+//BOTON FINALIZAR EVALUACION, CHECAR ESTA SECCION
+//Funcion para validar los campos de desempeño
 var objetoMateria = new Array();
 export const validar = async () =>{
     objetoMateria = [];//limpiamos arreglo
@@ -512,30 +656,17 @@ async function continuar(){
 
     }else{
         ////NO VALIDAMOS
-        if(idmateria == ""){
-            alert("Por favor seleccione un profesor a evaluar");
-        }else{
-        var respuesta = confirm("¿Esta seguro que desea enviar las respuestas? Posteriormente no se permiten cambios");
-        if(respuesta == true){
-            const IDMateria = await getDatap();
-            IDMateria.forEach(doc =>{
-            if(doc.data().opciones.Materia == idmateria){
-                console.log(doc.data());
-                ordenID.push(doc.data().opciones.Materia);
-                ordenID.push(doc.id);
-                console.log("EL ORDEN DE LAS MATERIAS ES:",ordenID);
-                }
-            });
-            actualizar();
-
-        }
-
-        //alert("Por favor conteste todas las secciones del formulario");
-        console.log("Faltan secciones por contestar");}
+        Swal.fire({
+            icon: 'error',
+            title: 'Faltan secciones por contestar',
+            text: 'Por favor, conteste y guarde todas las respuestas de las secciones del formulario',
+            confirmButtonText: 'Aceptar'
+        })
+        console.log("Faltan secciones por contestar");
     }
 
 }
-//Funcion cuando se hace click
+//FUNCION PARA MANDAR LA EVALUACION A LA DB
 const finalButton = document.getElementById('final-button');
 finalButton.addEventListener('click',(e) => {
     
@@ -545,17 +676,18 @@ finalButton.addEventListener('click',(e) => {
 //Funcion para actualizar boton a modificar
 //funcion para actualizar datos
 
-var ordenID = new Array();//almacenamos los id de las materias
-export const updateDat = (id, newFields) => updateDoc(doc(db,'Evaluaciones',localStorage.getItem("boleta"),'Desempeño',id), newFields);
+export const updateDat = (id, newFields) => updateDoc(doc(db,'Evaluaciones',localStorage.getItem("boleta"),'Desempeño',idmateria), newFields);
+
 //aqui va el codigo
-var arrayTermino = new Array();
+//Funcion para actualizar el estado y los botones
  function actualizar(){
     if(idmateria == ordenID[0] )
     console.log("LOS ARRAYS SON:",arrayId);
-    updateDat(ordenID[1],{
+    updateDat(idmateria,{
         Evaluado: true,
     });
-    arrayTermino.push(true);
+    arrayTermino.push(idmateria);
+    isFinished(arrayTermino);
     const nodo = document.getElementById(idmateria);
     const padre = nodo.parentNode;
     nodo.parentNode.removeChild(nodo)
@@ -571,11 +703,8 @@ var arrayTermino = new Array();
          `
          nodoN1.innerHTML = html1;
         
-    //FUNCION PARA QUITAR EL FORMULARIO
-    var finish = 0;
-    console.log("LONGITUD DE MATERIAS",arrayMaterias.length);
-    console.log("MATERIAS EVALUADAS",arrayTermino.length);
-    if(arrayTermino.length == arrayMaterias.length){
+    //FUNCION PARA QUITAR EL FORMULARIO, cargamos el # de materias evaluadas en la db
+    if(arrayTermino.length == materiasEvaluadas){
         console.log("Entramos al if");
         for(var i = 0; i<arrayTermino.length; i++){
             if(arrayTermino[i] == false){
@@ -591,128 +720,5 @@ var arrayTermino = new Array();
             quitButton.parentNode.removeChild(quitButton);
         }
     }
-    
+    idmateria = "";//Limpiamos el idmateria para evitar que se vuelvan a enviar respuestas
 }
-//funcion para enlistar los datos que tenemos en la db de las preguntas y obtener el id generado de cada documento, se carga al inicio de la pagina
-var arrayId = new Array();
-var np = new Array();
-var nopcion = new Array();
-var materiaActual;
-var radios;
-// var preguntatemp;
-// var respuestatemp;
-export const getData = () => getDocs(collection(db,'Evaluaciones',localStorage.getItem("boleta"),'Desempeño'));
-//Para la seccion de desempeño, obtenemos los id de los documentos
-const datos = await getData();
-datos.forEach(doc =>{
-      console.log("Los documentos en desempeño son:",doc.data());
-      materiaActual = doc.data().opciones.Materia;
-      if(doc.data().Evaluado == true){
-          //Quitamos boton y marcamos como evaluado, tambien actualizamos el estado
-          const nodo = document.getElementById(doc.data().opciones.Materia);
-          const padre = nodo.parentNode;
-          const nodoN = document.getElementById(`${doc.data().opciones.Materia}1`);
-          console.log("EL ESTADO A MODIFICAR ES",nodoN);
-          let html = "";
-          let html1 = "";
-          html = `
-          <p id="${idmateria}">NINGUNA</p>
-         `
-         padre.innerHTML = html;
-         html1 += `
-         <p>EVALUADO</p>
-         `
-         nodoN.innerHTML = html1;
-        }
-    //  }else{
-    //      console.log("La materia es:",materiaActual);
-    //      //Cargamos las respuesta en caso de que las haya 
-    //      np = doc.data().opciones.Pregunta;
-    //      nopcion = doc.data().opciones.Opciones;
-    //      console.log(np);
-    //      console.log(nopcion);
-    //      if(doc.data().opciones.Bandera == false){//Hay respuestas
-    //     //Obtenemos las respuestas y numero de preguntas asociadas
-    //         for(var i = 0; i < np.length; i++){
-    //             //Colocamos en el documento las respuestas
-    //             radios = document.getElementsByName(`optionsRadios1-${i+1}`);
-    //             //Ya tenemos los radios asociados a la pantalla desempeño
-    //             if(np[i] == i+1){//Accedemos a la pregunta no i 
-    //                 if(nopcion == "option1")
-    //                 radios[0].checked = true;
-    //                 else if(nopcion == "option2")
-    //                 radios[1].checked = true;
-    //                 else if(nopcion == "option3")
-    //                 radios[2].checked = true;
-    //                 else
-    //                 radios[3].checked = true;
-    //             }
-    //         }
-         
-    //      }
-    //  }
-    //  console.log(doc.data().opciones.Opciones[0]);
-     arrayId.push(doc.id);
-     //FUNCION PARA QUITAR EL FORMULARIO
-    //  var finish;
-    //  console.log("LONGITUD DE MATERIAS",arrayMaterias.length);
-    //  console.log("MATERIAS EVALUADAS",arrayTermino.length);
-    //  if(arrayTermino.length == arrayMaterias.length){
-    //      for(var i = 0; i<arrayTermino.length; i++){
-    //          if(arrayTermino[i] == false){
-    //              finish = 1;
-    //          }
-    //      }
-    //      if(finish == 0){
-    //          const quit = document.getElementById('table-f')
-    //          console.log("TENEMOS TODAS LAS MATERIAS EVALUADAS",quit);
-    //          quit.parentNode.removeChild(quit);
-    //      }
-
-    //  }
-});
-console.log(arrayId);
-
-//Para la seccion CONOCIMIENTOS
-// np = "";
-// nopcion = "";
-// materiaActual = "";
-// radios = "";
-// export const getData1 = () => getDocs(collection(db, 'Evaluaciones', localStorage.getItem("boleta"),'Conocimientos'));
-// const datos1 = await getData1();
-// datos1.forEach(doc => {
-//     console.log("Los documentos en Conocimientos son:",doc.data());
-//      materiaActual = doc.data().opciones.Materia;
-//     console.log("La materia es:",materiaActual);
-//     //Cargamos las respuesta en caso de que las haya 
-//     np = doc.data().opciones.Pregunta;
-//     nopcion = doc.data().opciones.Opciones;
-//     console.log(np);
-//     console.log(nopcion);
-//     if(doc.data().opciones.Bandera == false || doc.data().opciones.Bandera == true){//Hay respuestas
-//         //Obtenemos las respuestas y numero de preguntas asociadas
-//         for(var i = 0; i < np.length; i++){
-//             //Colocamos en el documento las respuestas
-//             radios = document.getElementsByName(`optionsRadios2-${i+1}`);
-//             //console.log("Los nuevos radios son",radios);
-//             //Ya tenemos los radios asociados a la pantalla desempeño
-//             if(np[i] == i+1){//Accedemos a la pregunta no i 
-//                 if(nopcion == "option1")
-//                 radios[0].checked = true;
-//                 else if(nopcion == "option2")
-//                 radios[1].checked = true;
-//                 else if(nopcion == "option3")
-//                 radios[2].checked = true;
-//                 else
-//                 radios[3].checked = true;
-//             }
-//         } 
-//     }
-//      console.log(doc.data().opciones.Opciones[0]);
-//      arrayId.push(doc.id);
-
-// });
-
-//console.log(querySnapshot); Mostramos los querysnapshot con su formato largo
-//funciones para los botones
-//document.getElementsByClassName('btn btn-primary btn-lg btn-sm').onclick = actualizarProfesor(nombresP);

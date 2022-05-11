@@ -1,108 +1,73 @@
-import {db} from './firebase.js';
+import {db, datosPeriodo, promedioGeneral, materiasReprobadas } from './firebase.js';
 import {getFirestore, collection, addDoc, query, where, getDocs, getDoc, doc} from "http://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"
 
 window.addEventListener('DOMContentLoaded', async () => {
 
-    const numBoleta = localStorage.getItem("boleta");
+    try {
+        const promedio = await promedioGeneral();
+        const materiasRp = await materiasReprobadas();
+        const {periodo, inscripcion} = await datosPeriodo();
 
-    //Obtiene el promedio
-    const coleccionKardex = await getDocs(collection(db, "Kardex"));
-    const kardex = getKardex(numBoleta, coleccionKardex);
-    const promedio = kardex.calificacion;
+        if (inscripcion) { // se pueden inscribir
+            // Referencia a la coleccion Inscripcion
+            const inscripcionRef = collection(db,"Inscripcion");
+            // Referencia al alumno
+            const alumnoRef = doc(db,"Usuario",localStorage.getItem('boleta'));
+            // Query donde me traera la inscricion de un alumno por su boleta y el periodo
+            const q = query(inscripcionRef, where("periodo","==",periodo), where("alumno","==",alumnoRef));
+            // Ejecución de la query
+            const querySnapshot = await getDocs(q);
 
-    //Obtiene el número de materias reprobadas
-    const periodos = [kardex.periodos];
-    for(var i = 0; i < kardex.periodos.length; i++) {
-        let periodo = await getInscripcion(kardex.periodos[i]);
-        periodos[i] = periodo.data();
+            querySnapshot.forEach(doc=>{
+                const {citaInscripcion} = doc.data();
+                // Le doy formato a la cita
+                let cita = citaInscripcion.toDate();
+
+                addFila(getFecha(cita),getFecha(new Date(cita.setHours(cita.getHours()+1))), promedio.toFixed(2), materiasRp.length);
+
+
+            })
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'No hay información para mostrar',
+                text: 'No existe información',
+                confirmButtonText: 'Aceptar'
+            })
+            console.log('No es epoca de inscripción');
+        }
+    } catch (error) {
+        console.log(error)
     }
-    const coleccionEts = await getDocs(collection(db, "ets"));
-    const ets = getEts(numBoleta, coleccionEts);
-    const cantMatReprobadas = numMateriasReprobadas(periodos, ets);
-
-    //Obtiene la cita de reinscripción
-    const cita = getCita(periodos);
-
-    //Genera la tabla
-    addFila(promedio, cantMatReprobadas, cita);
 })
 
-//Obtiene el kárdex del alumnno
-function getKardex(numBoleta, coleccionKardex) {
-    let kardex;
-    coleccionKardex.forEach(doc => {
-        const datos = doc.data();
-        if(datos.boleta == numBoleta)
-            kardex = datos;
-    });
-    return kardex;
+//Añade a la tabla de la cita de reinscripción los siguientes datos:
+//promedio, número de materias reprobadas, fecha de inscripción y fecha de caducidad
+function addFila(cita, citaFin, promedio, materiasReprobadas) {
+    let tabla = document.getElementById("tablaCitaReinscripcion");
+    let cuerpoTabla = document.createElement("tbody");
+    let fila = document.createElement("tr");
+    // promedio
+    let td = document.createElement("td");
+    td.innerText = promedio;
+    fila.appendChild(td);
+    // cantidad de materias reprobadas
+    td = document.createElement("td");
+    td.innerText = materiasReprobadas;
+    fila.appendChild(td);
+    // fecha de inscripcion
+    td = document.createElement("td");
+    td.innerText = cita;
+    fila.appendChild(td);
+    // fecha de caducidad
+    td = document.createElement("td");
+    td.innerText = citaFin;
+    fila.appendChild(td);
+    
+    cuerpoTabla.appendChild(fila);
+
+    tabla.appendChild(cuerpoTabla);
 }
-
-//Obtiene una inscripción de la colección, de acuerdo al ID 
-const getInscripcion = (id) => getDoc(doc(db,"Inscripciones", id))
-
-//Obtiene los ETS del alumno
-function getEts(numBoleta, coleccionEts) {
-    const ets = [];
-    coleccionEts.forEach(doc => {
-        const datos = doc.data();
-        if(datos.boleta == numBoleta)
-            ets.push(datos);
-    });
-    return ets;
-}
-
-//Regresa el número de materias reprobadas considerando que se cumpla todo lo siguiente:
-//ordinario: calificación < 6
-//extra : calificación < 6 o "NP"
-//ets : cuando no haya hecho el ets de la materia que no pasó en ordinario ni extra
-//o haya reprobado el ets
-function numMateriasReprobadas(periodos, ets) {
-    var cantMatReprobadas = 0;
-    periodos.forEach(periodo => {
-        for(var i = 0; i < periodo.ordinario.length; i++)
-            if(periodo.ordinario[i] < 6 
-                && extraReprobado(periodo.extraordinario[i])
-                && etsReprobado(periodo.materias[i], ets))
-                    cantMatReprobadas++;
-    });
-    return cantMatReprobadas;
-}
-
-//Regresa true si : la calificación del extra es < 6 o "NP"
-function extraReprobado(extraordinario) {
-    let reprobado = false;
-    if(extraordinario < 6 || extraordinario == "NP")
-        reprobado = true;
-    return reprobado;
-}
-
-//Regresa true si:
-//no ha hecho el ets de la materia que no pasó en ordinario ni extra 
-//(no tenga registro de la materia reprobada en la colección "ets")
-//o haya reprobado el ets
-function etsReprobado(idMatReprobada, ets) {
-    let reprobado = true;
-    ets.forEach(e => {
-        for(var i = 0; i < e.materias.length; i++)
-            if(e.materias[i] == idMatReprobada)
-                if(e.calificaciones[i] >= 6)
-                    reprobado = false;
-    });
-    return reprobado;
-}
-
-//Regresa la cita del documento cuyo campo "citaValida" sea true
-//este campo lo agregué para diferenciar las reinscripciones pasadas de las actuales
-function getCita(periodos) {
-    let cita;
-   periodos.forEach(periodo => {
-        if(periodo.citaValida)
-            cita = periodo.cita;
-    });
-    return cita;
-}
-
 //Regresa una fecha con el sigueinte formato: DD/MM/AAAA hh:mm:ss
 function getFecha(date) {
 
@@ -132,43 +97,3 @@ function getFecha(date) {
     return día + "/" + mes + "/" + año + " " + hora + ":" + minutos + ":" + segundos;
 }
 
-Date.prototype.sumarUnaHora = function(){
-    this.setHours(this.getHours() + 1);
-};
-
-//Añade a la tabla de la cita de reinscripción los siguientes datos:
-//promedio, número de materias reprobadas, fecha de inscripción y fecha de caducidad
-function addFila(promedio, cantMatReprobadas, cita) {
-    let tabla = document.getElementById("tablaCitaReinscripcion");
-    let cuerpoTabla = document.createElement("tbody");
-
-    let date = cita.toDate();
-
-    const fechaInscripcion = getFecha(date); 
-
-    date.sumarUnaHora();//Se incrementa una hora a la cita para obtener la fecha de caducidad
-
-    const fechaCaducidad = getFecha(date);
-
-    let fila = document.createElement("tr");
-
-    let td = document.createElement("td");
-    td.innerText = promedio;
-    fila.appendChild(td);
-
-    td = document.createElement("td");
-    td.innerText = cantMatReprobadas;
-    fila.appendChild(td);
-
-    td = document.createElement("td");
-    td.innerText = fechaInscripcion;
-    fila.appendChild(td);
-
-    td = document.createElement("td");
-    td.innerText = fechaCaducidad;
-    fila.appendChild(td);
-    
-    cuerpoTabla.appendChild(fila);
-
-    tabla.appendChild(cuerpoTabla);
-}

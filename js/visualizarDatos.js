@@ -5,7 +5,7 @@ const contenedor = document.querySelector("#contenedor");
 
 window.onload = async () => {
   const boleta = localStorage.getItem('boleta') || '';
-  const ref = doc(db, "Alumnos", boleta);
+  const ref = doc(db, "Usuario", boleta);
   const querySnapshot = await getDoc(ref);
   const data = querySnapshot.data();
   
@@ -17,11 +17,11 @@ window.onload = async () => {
     <p>E-mail: ${data.correo}</p>
     <p>Teléfono: ${data.telefono}</p>
     <h2>Dirección</h2>
-    <p>Calle: ${data.calle}</p>
-    <p>Número exterior: ${data.numExt}</p>
-    <p>Número interior: ${data?.numInt || 'N/A'}</p>
-    <p>Colonia: ${data.colonia}</p>
-    <p>Delegacion o Municipio: ${data.delegacion}</p>
-    <p>Estado: ${data.estado}</p>
+    <p>Calle: ${data.direccion.calle}</p>
+    <p>Número exterior: ${data.direccion.numExt}</p>
+    <p>Número interior: ${data.direccion?.numInt || 'N/A'}</p>
+    <p>Colonia: ${data.direccion.colonia}</p>
+    <p>Delegacion o Municipio: ${data.direccion.delegacion}</p>
+    <p>Estado: ${data.direccion.estado}</p>
   `;
 }
